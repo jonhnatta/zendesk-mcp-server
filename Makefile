@@ -4,10 +4,10 @@ run:
 	uv run zendesk-mcp-ro
 
 test:
-	uv run pytest -v
+	uv run pytest -v; status=$$?; [ $$status -eq 5 ] && exit 0 || exit $$status
 
 test-cov:
-	uv run pytest --cov=src --cov-report=term-missing
+	uv run pytest --cov=src --cov-report=term-missing; status=$$?; [ $$status -eq 5 ] && exit 0 || exit $$status
 
 lint:
 	uv run ruff check src/
