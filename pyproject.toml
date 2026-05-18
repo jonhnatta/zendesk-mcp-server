@@ -1,7 +1,7 @@
 [project]
-name = "zendesk-mcp-server"
+name = "zendesk-mcp-ro"
 version = "0.1.0"
-description = "Add your description here"
+description = "Read-only MCP server for Zendesk — distributed via PyPI, runs locally with uvx"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -22,3 +22,7 @@ dev = [
     "respx>=0.23.1",
     "ruff>=0.15.13",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
