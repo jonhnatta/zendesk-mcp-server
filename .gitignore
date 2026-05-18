@@ -1,0 +1,35 @@
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Linter e type checker
+.ruff_cache/
+.mypy_cache/
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
