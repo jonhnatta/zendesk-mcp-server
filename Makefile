@@ -10,12 +10,12 @@ test-cov:
 	uv run pytest --cov=src --cov-report=term-missing; status=$$?; [ $$status -eq 5 ] && exit 0 || exit $$status
 
 lint:
-	uv run ruff check src/
-	uv run ruff format --check src/
+	uv run ruff check src/ tests/
+	uv run ruff format --check src/ tests/
 
 format:
-	uv run ruff check --fix src/
-	uv run ruff format src/
+	uv run ruff check --fix src/ tests/
+	uv run ruff format src/ tests/
 
 typecheck:
 	uv run mypy src/
