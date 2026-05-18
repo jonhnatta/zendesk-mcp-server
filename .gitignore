@@ -33,3 +33,8 @@ coverage.xml
 # Sistema operacional
 .DS_Store
 Thumbs.db
+
+# Arquivos locais de planejamento e assistente de IA
+CLAUDE.md
+FEATURES.md
+PRD-*.md
