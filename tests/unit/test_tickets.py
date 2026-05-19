@@ -622,5 +622,5 @@ async def test_get_tickets_count_by_status_propagates_errors(
     zendesk_client: ZendeskClient,
 ) -> None:
     respx.get(f"{BASE}/api/v2/search/count.json").mock(return_value=httpx.Response(403))
-    with pytest.raises(httpx.HTTPStatusError):
-        await _get_tickets_count_by_status(zendesk_client)
+    result = await _get_tickets_count_by_status(zendesk_client)
+    assert "Error fetching ticket counts: 403" in result
