@@ -4,6 +4,7 @@ import respx
 
 from zendesk_mcp_ro.client import ZendeskClient
 from zendesk_mcp_ro.tools.tickets import (
+    _get_linked_incidents,
     _get_ticket,
     _get_ticket_audits,
     _get_ticket_comments,
@@ -506,3 +507,80 @@ async def test_get_ticket_audits_propagates_errors(
     )
     with pytest.raises(httpx.HTTPStatusError):
         await _get_ticket_audits(zendesk_client, 1)
+
+
+# ---------------------------------------------------------------------------
+# get_linked_incidents
+# ---------------------------------------------------------------------------
+
+INCIDENTS_PAYLOAD = {
+    "tickets": [
+        {
+            "id": 50,
+            "subject": "Cannot login",
+            "status": "open",
+            "priority": "high",
+            "requester_id": 101,
+            "assignee_id": 202,
+            "updated_at": "2024-01-11T09:30:00Z",
+        },
+        {
+            "id": 51,
+            "subject": "App crash on startup",
+            "status": "pending",
+            "priority": "normal",
+            "requester_id": 103,
+            "assignee_id": None,
+            "updated_at": "2024-01-10T08:00:00Z",
+        },
+    ],
+    "users": [
+        {"id": 101, "name": "John Doe"},
+        {"id": 202, "name": "Agent Smith"},
+        {"id": 103, "name": "Jane Doe"},
+    ],
+}
+
+
+@respx.mock
+async def test_get_linked_incidents_happy_path(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/1/incidents.json").mock(
+        return_value=httpx.Response(200, json=INCIDENTS_PAYLOAD)
+    )
+    result = await _get_linked_incidents(zendesk_client, 1)
+    assert "Ticket #1" in result
+    assert "#50" in result
+    assert "Cannot login" in result
+    assert "Agent Smith" in result
+    assert "#51" in result
+    assert "App crash on startup" in result
+    assert "Unassigned" in result
+
+
+@respx.mock
+async def test_get_linked_incidents_empty(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/1/incidents.json").mock(
+        return_value=httpx.Response(200, json={"tickets": [], "users": []})
+    )
+    result = await _get_linked_incidents(zendesk_client, 1)
+    assert result == "No incidents linked to ticket #1."
+
+
+@respx.mock
+async def test_get_linked_incidents_not_found(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/99999/incidents.json").mock(
+        return_value=httpx.Response(404)
+    )
+    result = await _get_linked_incidents(zendesk_client, 99999)
+    assert result == "Ticket 99999 not found"
+
+
+@respx.mock
+async def test_get_linked_incidents_propagates_errors(
+    zendesk_client: ZendeskClient,
+) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/1/incidents.json").mock(
+        return_value=httpx.Response(403)
+    )
+    with pytest.raises(httpx.HTTPStatusError):
+        await _get_linked_incidents(zendesk_client, 1)
