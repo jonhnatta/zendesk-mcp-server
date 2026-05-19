@@ -5,7 +5,7 @@ import respx
 from zendesk_mcp_ro.client import ZendeskClient
 from zendesk_mcp_ro.tools.users import (
     _get_user,
-    _search_users,  # noqa: F401 — used in Task 2 (search_users tests)
+    _search_users,
 )
 
 BASE = "https://test-company.zendesk.com"
@@ -90,3 +90,62 @@ async def test_get_user_propagates_errors(zendesk_client: ZendeskClient) -> None
     respx.get(f"{BASE}/api/v2/users/101.json").mock(return_value=httpx.Response(403))
     with pytest.raises(httpx.HTTPStatusError):
         await _get_user(zendesk_client, 101)
+
+
+# ---------------------------------------------------------------------------
+# search_users
+# ---------------------------------------------------------------------------
+
+SEARCH_USERS_PAYLOAD = {
+    "users": [
+        {
+            "id": 101,
+            "name": "John Doe",
+            "email": "john.doe@example.com",
+            "role": "agent",
+            "organization_id": 303,
+            "updated_at": "2024-06-01T00:00:00Z",
+        },
+        {
+            "id": 102,
+            "name": "John Smith",
+            "email": "john.smith@example.com",
+            "role": "end-user",
+            "organization_id": None,
+            "updated_at": "2024-05-01T00:00:00Z",
+        },
+    ],
+    "count": 15,
+}
+
+
+@respx.mock
+async def test_search_users_returns_list(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/users/search.json").mock(
+        return_value=httpx.Response(200, json=SEARCH_USERS_PAYLOAD)
+    )
+    result = await _search_users(zendesk_client, "john")
+    assert "Showing 2 of 15" in result
+    assert "#101" in result
+    assert "John Doe" in result
+    assert "john.doe@example.com" in result
+    assert "agent" in result
+    assert "#102" in result
+    assert "John Smith" in result
+    assert "end-user" in result
+
+
+@respx.mock
+async def test_search_users_empty(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/users/search.json").mock(
+        return_value=httpx.Response(200, json={"users": [], "count": 0})
+    )
+    result = await _search_users(zendesk_client, "xyznotfound")
+    assert result == "No users found for query: xyznotfound"
+
+
+@respx.mock
+async def test_search_users_propagates_errors(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/users/search.json").mock(return_value=httpx.Response(403))
+    with pytest.raises(httpx.HTTPStatusError):
+        await _search_users(zendesk_client, "john")
