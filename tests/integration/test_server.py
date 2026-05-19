@@ -12,6 +12,7 @@ async def test_create_app_returns_mcp_and_client(settings):
     tools = await mcp.list_tools()
     tool_names = [t.name for t in tools]
     assert "get_ticket" in tool_names
+    assert "get_user" in tool_names
 
 
 def test_get_settings_raises_configuration_error_when_env_missing(monkeypatch):
