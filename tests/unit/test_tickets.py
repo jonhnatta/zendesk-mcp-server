@@ -60,6 +60,37 @@ async def test_get_ticket_happy_path(zendesk_client: ZendeskClient) -> None:
 
 
 @respx.mock
+async def test_get_ticket_unassigned(zendesk_client: ZendeskClient) -> None:
+    payload = {
+        "ticket": {
+            "id": 2,
+            "subject": "No assignee ticket",
+            "status": "new",
+            "priority": "normal",
+            "type": None,
+            "requester_id": 101,
+            "assignee_id": None,
+            "organization_id": None,
+            "tags": [],
+            "created_at": "2024-01-10T08:00:00Z",
+            "updated_at": "2024-01-10T08:00:00Z",
+            "description": "Waiting for triage.",
+            "via": {"channel": "api"},
+            "group_id": None,
+            "satisfaction_rating": None,
+        },
+        "users": [{"id": 101, "name": "John Doe"}],
+        "organizations": [],
+        "groups": [],
+    }
+    respx.get(f"{BASE}/api/v2/tickets/2.json").mock(
+        return_value=httpx.Response(200, json=payload)
+    )
+    result = await _get_ticket(zendesk_client, 2)
+    assert "Unassigned" in result
+
+
+@respx.mock
 async def test_get_ticket_not_found(zendesk_client: ZendeskClient) -> None:
     respx.get(f"{BASE}/api/v2/tickets/99999.json").mock(
         return_value=httpx.Response(404)

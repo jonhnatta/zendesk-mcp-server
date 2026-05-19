@@ -5,6 +5,8 @@ from zendesk_mcp_ro.client import ZendeskClient
 
 
 def _find_name(users: list[dict[str, object]], user_id: object) -> str:
+    if user_id is None:
+        return "Unassigned"
     for u in users:
         if u.get("id") == user_id:
             return str(u.get("name", "unknown"))
