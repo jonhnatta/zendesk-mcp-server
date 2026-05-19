@@ -5,6 +5,7 @@ import respx
 from zendesk_mcp_ro.client import ZendeskClient
 from zendesk_mcp_ro.tools.tickets import (
     _get_ticket,
+    _get_ticket_audits,
     _get_ticket_comments,
     _get_ticket_metrics,
     _list_tickets,
@@ -392,3 +393,116 @@ async def test_list_tickets_propagates_errors(zendesk_client: ZendeskClient) -> 
     respx.get(f"{BASE}/api/v2/search.json").mock(return_value=httpx.Response(403))
     with pytest.raises(httpx.HTTPStatusError):
         await _list_tickets(zendesk_client, status="open")
+
+
+# ---------------------------------------------------------------------------
+# get_ticket_audits
+# ---------------------------------------------------------------------------
+
+AUDITS_PAYLOAD = {
+    "audits": [
+        {
+            "id": 1001,
+            "ticket_id": 1,
+            "created_at": "2024-01-10T08:00:00Z",
+            "author_id": 101,
+            "events": [
+                {"id": 2001, "type": "Create"},
+                {
+                    "id": 2002,
+                    "type": "Change",
+                    "field_name": "status",
+                    "previous_value": None,
+                    "value": "new",
+                },
+            ],
+        },
+        {
+            "id": 1002,
+            "ticket_id": 1,
+            "created_at": "2024-01-10T09:00:00Z",
+            "author_id": 202,
+            "events": [
+                {
+                    "id": 2003,
+                    "type": "Change",
+                    "field_name": "assignee_id",
+                    "previous_value": None,
+                    "value": "202",
+                },
+                {
+                    "id": 2004,
+                    "type": "Change",
+                    "field_name": "status",
+                    "previous_value": "new",
+                    "value": "open",
+                },
+            ],
+        },
+        {
+            "id": 1003,
+            "ticket_id": 1,
+            "created_at": "2024-01-11T09:30:00Z",
+            "author_id": 202,
+            "events": [
+                {
+                    "id": 2005,
+                    "type": "Change",
+                    "field_name": "status",
+                    "previous_value": "open",
+                    "value": "solved",
+                },
+            ],
+        },
+    ],
+    "users": [
+        {"id": 101, "name": "John Doe"},
+        {"id": 202, "name": "Agent Smith"},
+    ],
+}
+
+
+@respx.mock
+async def test_get_ticket_audits_happy_path(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/1/audits.json").mock(
+        return_value=httpx.Response(200, json=AUDITS_PAYLOAD)
+    )
+    result = await _get_ticket_audits(zendesk_client, 1)
+    assert "Ticket #1" in result
+    assert "John Doe" in result
+    assert "Agent Smith" in result
+    assert "2024-01-10T08:00:00Z" in result
+    assert "Ticket created" in result
+    assert "status" in result
+    assert "new → open" in result
+    assert "open → solved" in result
+    assert "assignee_id" in result
+
+
+@respx.mock
+async def test_get_ticket_audits_empty(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/1/audits.json").mock(
+        return_value=httpx.Response(200, json={"audits": [], "users": []})
+    )
+    result = await _get_ticket_audits(zendesk_client, 1)
+    assert result == "No audit trail found for ticket #1."
+
+
+@respx.mock
+async def test_get_ticket_audits_not_found(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/99999/audits.json").mock(
+        return_value=httpx.Response(404)
+    )
+    result = await _get_ticket_audits(zendesk_client, 99999)
+    assert result == "Ticket 99999 not found"
+
+
+@respx.mock
+async def test_get_ticket_audits_propagates_errors(
+    zendesk_client: ZendeskClient,
+) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/1/audits.json").mock(
+        return_value=httpx.Response(403)
+    )
+    with pytest.raises(httpx.HTTPStatusError):
+        await _get_ticket_audits(zendesk_client, 1)
