@@ -274,10 +274,11 @@ async def _get_linked_incidents(client: ZendeskClient, ticket_id: int) -> str:
         if not tickets:
             return f"No incidents linked to ticket #{ticket_id}."
 
+        total: int = int(str(data.get("count", len(tickets))))
         return _format_ticket_list(
             tickets,
             users,
-            len(tickets),
+            total,
             f"Incidents linked to Ticket #{ticket_id}",
         )
     except httpx.HTTPStatusError as e:
