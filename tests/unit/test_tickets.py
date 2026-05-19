@@ -3,7 +3,11 @@ import pytest
 import respx
 
 from zendesk_mcp_ro.client import ZendeskClient
-from zendesk_mcp_ro.tools.tickets import _get_ticket, _get_ticket_comments
+from zendesk_mcp_ro.tools.tickets import (
+    _get_ticket,
+    _get_ticket_comments,
+    _get_ticket_metrics,
+)
 
 BASE = "https://test-company.zendesk.com"
 
@@ -155,3 +159,76 @@ async def test_get_ticket_comments_propagates_errors(
     )
     with pytest.raises(httpx.HTTPStatusError):
         await _get_ticket_comments(zendesk_client, 1)
+
+
+# ---------------------------------------------------------------------------
+# get_ticket_metrics
+# ---------------------------------------------------------------------------
+
+METRICS_PAYLOAD = {
+    "ticket_metric": {
+        "ticket_id": 1,
+        "reply_time_in_minutes": {"calendar": 45, "business": 30},
+        "full_resolution_time_in_minutes": {"calendar": 480, "business": 240},
+        "reopens": 1,
+        "replies": 3,
+        "assignee_updated_at": "2024-01-11T09:30:00Z",
+        "requester_updated_at": "2024-01-11T08:00:00Z",
+    }
+}
+
+METRICS_PAYLOAD_NO_RESOLUTION = {
+    "ticket_metric": {
+        "ticket_id": 2,
+        "reply_time_in_minutes": {"calendar": 20, "business": 15},
+        "full_resolution_time_in_minutes": None,
+        "reopens": 0,
+        "replies": 1,
+        "assignee_updated_at": None,
+        "requester_updated_at": "2024-01-10T08:05:00Z",
+    }
+}
+
+
+@respx.mock
+async def test_get_ticket_metrics_happy_path(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/1/metrics.json").mock(
+        return_value=httpx.Response(200, json=METRICS_PAYLOAD)
+    )
+    result = await _get_ticket_metrics(zendesk_client, 1)
+    assert "Ticket #1" in result
+    assert "45m" in result
+    assert "8h 0m" in result
+    assert "Reopens: 1" in result
+    assert "Replies: 3" in result
+
+
+@respx.mock
+async def test_get_ticket_metrics_null_resolution(
+    zendesk_client: ZendeskClient,
+) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/2/metrics.json").mock(
+        return_value=httpx.Response(200, json=METRICS_PAYLOAD_NO_RESOLUTION)
+    )
+    result = await _get_ticket_metrics(zendesk_client, 2)
+    assert "n/a" in result
+
+
+@respx.mock
+async def test_get_ticket_metrics_not_found(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/99999/metrics.json").mock(
+        return_value=httpx.Response(404)
+    )
+    result = await _get_ticket_metrics(zendesk_client, 99999)
+    assert result == "Ticket 99999 not found"
+
+
+@respx.mock
+async def test_get_ticket_metrics_propagates_errors(
+    zendesk_client: ZendeskClient,
+) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/1/metrics.json").mock(
+        return_value=httpx.Response(403)
+    )
+    with pytest.raises(httpx.HTTPStatusError):
+        await _get_ticket_metrics(zendesk_client, 1)
