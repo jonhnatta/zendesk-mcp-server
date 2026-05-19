@@ -287,6 +287,23 @@ async def _get_linked_incidents(client: ZendeskClient, ticket_id: int) -> str:
         raise
 
 
+async def _get_tickets_count_by_status(client: ZendeskClient) -> str:
+    statuses = ["new", "open", "pending", "hold", "solved", "closed"]
+    lines: list[str] = ["Ticket counts by status:"]
+    total = 0
+    for status in statuses:
+        data = await client.get(
+            "/api/v2/search/count.json",
+            params={"query": f"type:ticket status:{status}"},
+        )
+        count = int(str(data.get("count", 0)))
+        lines.append(f"  {status}: {count}")
+        total += count
+    lines.append(f"  {'─' * 20}")
+    lines.append(f"  total: {total}")
+    return "\n".join(lines)
+
+
 def register(mcp: FastMCP, client: ZendeskClient) -> None:
     @mcp.tool()
     async def get_ticket(ticket_id: int) -> str:
@@ -372,3 +389,13 @@ def register(mcp: FastMCP, client: ZendeskClient) -> None:
         are affected).
         """
         return await _get_linked_incidents(client, ticket_id)
+
+    @mcp.tool()
+    async def get_tickets_count_by_status() -> str:
+        """Return a summary of ticket counts grouped by status.
+
+        Queries each Zendesk ticket status (new, open, pending, hold, solved, closed)
+        and returns the count for each, plus the grand total.
+        Use this when you need a quick dashboard overview of ticket volume by status.
+        """
+        return await _get_tickets_count_by_status(client)
