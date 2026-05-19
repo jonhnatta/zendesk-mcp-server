@@ -7,6 +7,8 @@ from zendesk_mcp_ro.tools.tickets import (
     _get_ticket,
     _get_ticket_comments,
     _get_ticket_metrics,
+    _list_tickets,
+    _search_tickets,
 )
 
 BASE = "https://test-company.zendesk.com"
@@ -263,3 +265,130 @@ async def test_get_ticket_metrics_propagates_errors(
     )
     with pytest.raises(httpx.HTTPStatusError):
         await _get_ticket_metrics(zendesk_client, 1)
+
+
+# ---------------------------------------------------------------------------
+# search_tickets
+# ---------------------------------------------------------------------------
+
+SEARCH_PAYLOAD = {
+    "results": [
+        {
+            "id": 10,
+            "subject": "Billing error on invoice",
+            "status": "open",
+            "priority": "high",
+            "requester_id": 101,
+            "assignee_id": 202,
+            "updated_at": "2024-01-11T09:30:00Z",
+        },
+        {
+            "id": 11,
+            "subject": "Cannot access portal",
+            "status": "pending",
+            "priority": "normal",
+            "requester_id": 101,
+            "assignee_id": None,
+            "updated_at": "2024-01-10T08:00:00Z",
+        },
+    ],
+    "count": 42,
+    "users": [
+        {"id": 101, "name": "John Doe"},
+        {"id": 202, "name": "Agent Smith"},
+    ],
+}
+
+
+@respx.mock
+async def test_search_tickets_returns_list(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/search.json").mock(
+        return_value=httpx.Response(200, json=SEARCH_PAYLOAD)
+    )
+    result = await _search_tickets(zendesk_client, "billing")
+    assert "Showing 2 of 42" in result
+    assert "#10" in result
+    assert "Billing error on invoice" in result
+    assert "open" in result
+    assert "high" in result
+    assert "Agent Smith" in result
+    assert "#11" in result
+    assert "Cannot access portal" in result
+    assert "Unassigned" in result
+
+
+@respx.mock
+async def test_search_tickets_empty_result(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/search.json").mock(
+        return_value=httpx.Response(200, json={"results": [], "count": 0, "users": []})
+    )
+    result = await _search_tickets(zendesk_client, "xyznotfound")
+    assert result == "No tickets found for query: xyznotfound"
+
+
+@respx.mock
+async def test_search_tickets_propagates_errors(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/search.json").mock(return_value=httpx.Response(403))
+    with pytest.raises(httpx.HTTPStatusError):
+        await _search_tickets(zendesk_client, "billing")
+
+
+# ---------------------------------------------------------------------------
+# list_tickets
+# ---------------------------------------------------------------------------
+
+LIST_PAYLOAD = {
+    "results": [
+        {
+            "id": 20,
+            "subject": "Password reset request",
+            "status": "open",
+            "priority": "normal",
+            "requester_id": 101,
+            "assignee_id": 202,
+            "updated_at": "2024-01-12T10:00:00Z",
+        },
+    ],
+    "count": 1,
+    "users": [
+        {"id": 101, "name": "John Doe"},
+        {"id": 202, "name": "Agent Smith"},
+    ],
+}
+
+
+@respx.mock
+async def test_list_tickets_with_status(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/search.json").mock(
+        return_value=httpx.Response(200, json=LIST_PAYLOAD)
+    )
+    result = await _list_tickets(zendesk_client, status="open")
+    assert "Showing 1 of 1" in result
+    assert "#20" in result
+    assert "Password reset request" in result
+    assert "Agent Smith" in result
+
+
+@respx.mock
+async def test_list_tickets_without_status(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/search.json").mock(
+        return_value=httpx.Response(200, json=LIST_PAYLOAD)
+    )
+    result = await _list_tickets(zendesk_client)
+    assert "#20" in result
+
+
+@respx.mock
+async def test_list_tickets_empty(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/search.json").mock(
+        return_value=httpx.Response(200, json={"results": [], "count": 0, "users": []})
+    )
+    result = await _list_tickets(zendesk_client, status="solved")
+    assert result == "No tickets found."
+
+
+@respx.mock
+async def test_list_tickets_propagates_errors(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/search.json").mock(return_value=httpx.Response(403))
+    with pytest.raises(httpx.HTTPStatusError):
+        await _list_tickets(zendesk_client, status="open")
