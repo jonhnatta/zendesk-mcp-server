@@ -22,6 +22,7 @@ TICKET_PAYLOAD = {
         "updated_at": "2024-01-11T09:30:00Z",
         "description": "User cannot log in since yesterday.",
         "via": {"channel": "email"},
+        "group_id": 404,
         "satisfaction_rating": {"score": "good"},
     },
     "users": [
@@ -30,6 +31,9 @@ TICKET_PAYLOAD = {
     ],
     "organizations": [
         {"id": 303, "name": "Acme Corp"},
+    ],
+    "groups": [
+        {"id": 404, "name": "Support Tier 1"},
     ],
 }
 
@@ -52,6 +56,7 @@ async def test_get_ticket_happy_path(zendesk_client: ZendeskClient) -> None:
     assert "John Doe" in result
     assert "Agent Smith" in result
     assert "Acme Corp" in result
+    assert "Support Tier 1" in result
 
 
 @respx.mock
