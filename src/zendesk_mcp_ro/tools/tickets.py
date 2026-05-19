@@ -262,6 +262,51 @@ async def _get_ticket_audits(client: ZendeskClient, ticket_id: int) -> str:
         raise
 
 
+async def _get_linked_incidents(client: ZendeskClient, ticket_id: int) -> str:
+    try:
+        data = await client.get(
+            f"/api/v2/tickets/{ticket_id}/incidents.json",
+            params={"include": "users"},
+        )
+        tickets: list[dict[str, object]] = data.get("tickets", [])
+        users: list[dict[str, object]] = data.get("users", [])
+
+        if not tickets:
+            return f"No incidents linked to ticket #{ticket_id}."
+
+        total: int = int(str(data.get("count", len(tickets))))
+        return _format_ticket_list(
+            tickets,
+            users,
+            total,
+            f"Incidents linked to Ticket #{ticket_id}",
+        )
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            return f"Ticket {ticket_id} not found"
+        raise
+
+
+async def _get_tickets_count_by_status(client: ZendeskClient) -> str:
+    statuses = ["new", "open", "pending", "hold", "solved", "closed"]
+    lines: list[str] = ["Ticket counts by status:"]
+    total = 0
+    try:
+        for status in statuses:
+            data = await client.get(
+                "/api/v2/search/count.json",
+                params={"query": f"type:ticket status:{status}"},
+            )
+            count = int(str(data.get("count", 0)))
+            lines.append(f"  {status}: {count}")
+            total += count
+    except httpx.HTTPStatusError as e:
+        return f"Error fetching ticket counts: {e.response.status_code}"
+    lines.append(f"  {'─' * 20}")
+    lines.append(f"  total: {total}")
+    return "\n".join(lines)
+
+
 def register(mcp: FastMCP, client: ZendeskClient) -> None:
     @mcp.tool()
     async def get_ticket(ticket_id: int) -> str:
@@ -335,3 +380,25 @@ def register(mcp: FastMCP, client: ZendeskClient) -> None:
         Use this when you need to trace the full lifecycle of a ticket.
         """
         return await _get_ticket_audits(client, ticket_id)
+
+    @mcp.tool()
+    async def get_linked_incidents(ticket_id: int) -> str:
+        """Retrieve all incident tickets linked to a Zendesk problem ticket.
+
+        In Zendesk, a ticket of type 'problem' can have multiple 'incident' tickets
+        linked to it. Returns the list of those incident tickets with subject, status,
+        priority, assignee and last update time.
+        Use this when you need to assess the impact of a problem (how many customers
+        are affected).
+        """
+        return await _get_linked_incidents(client, ticket_id)
+
+    @mcp.tool()
+    async def get_tickets_count_by_status() -> str:
+        """Return a summary of ticket counts grouped by status.
+
+        Queries each Zendesk ticket status (new, open, pending, hold, solved, closed)
+        and returns the count for each, plus the grand total.
+        Use this when you need a quick dashboard overview of ticket volume by status.
+        """
+        return await _get_tickets_count_by_status(client)
