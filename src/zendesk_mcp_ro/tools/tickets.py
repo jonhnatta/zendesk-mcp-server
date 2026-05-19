@@ -181,6 +181,36 @@ async def _search_tickets(
     return _format_ticket_list(results, users, total, f'Search results for "{query}"')
 
 
+async def _list_tickets(
+    client: ZendeskClient,
+    status: str | None = None,
+    per_page: int = 25,
+) -> str:
+    query_parts = ["type:ticket"]
+    if status:
+        query_parts.append(f"status:{status}")
+
+    data = await client.get(
+        "/api/v2/search.json",
+        params={
+            "query": " ".join(query_parts),
+            "sort_by": "updated_at",
+            "sort_order": "desc",
+            "per_page": str(per_page),
+            "include": "users",
+        },
+    )
+    results: list[dict[str, object]] = data.get("results", [])
+    users: list[dict[str, object]] = data.get("users", [])
+    total: int = int(str(data.get("count", 0)))
+
+    if not results:
+        return "No tickets found."
+
+    label = f"Tickets (status={status})" if status else "Recent tickets"
+    return _format_ticket_list(results, users, total, label)
+
+
 def register(mcp: FastMCP, client: ZendeskClient) -> None:
     @mcp.tool()
     async def get_ticket(ticket_id: int) -> str:
@@ -228,3 +258,18 @@ def register(mcp: FastMCP, client: ZendeskClient) -> None:
         Use this when you need to find tickets matching specific keywords or filters.
         """
         return await _search_tickets(client, query, per_page)
+
+    @mcp.tool()
+    async def list_tickets(
+        status: str | None = None,
+        per_page: int = 25,
+    ) -> str:
+        """List Zendesk tickets, optionally filtered by status.
+
+        Returns a paginated list of tickets sorted by last update (newest first),
+        with subject, status, priority, assignee and last update time.
+        Valid status values: new, open, pending, hold, solved, closed.
+        Omit status to list the most recently updated tickets regardless of status.
+        Use this when you need an overview of tickets in a given state.
+        """
+        return await _list_tickets(client, status, per_page)
