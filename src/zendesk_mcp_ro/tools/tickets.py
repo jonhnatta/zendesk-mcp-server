@@ -211,6 +211,57 @@ async def _list_tickets(
     return _format_ticket_list(results, users, total, label)
 
 
+async def _get_ticket_audits(client: ZendeskClient, ticket_id: int) -> str:
+    try:
+        data = await client.get(
+            f"/api/v2/tickets/{ticket_id}/audits.json",
+            params={"include": "users"},
+        )
+        audits: list[dict[str, object]] = data.get("audits", [])
+        users: list[dict[str, object]] = data.get("users", [])
+
+        if not audits:
+            return f"No audit trail found for ticket #{ticket_id}."
+
+        lines = [f"Audit trail for Ticket #{ticket_id} ({len(audits)} entries):\n"]
+
+        for audit in audits:
+            author = _find_name(users, audit.get("author_id"))
+            created_at = audit.get("created_at", "unknown")
+            events_raw = audit.get("events", [])
+            events: list[dict[str, object]] = [
+                e
+                for e in (events_raw if isinstance(events_raw, list) else [])
+                if e.get("type") in ("Create", "Change", "Comment")
+            ]
+
+            if not events:
+                continue
+
+            lines.append(f"[{created_at}] {author}")
+            for event in events:
+                etype = event.get("type")
+                if etype == "Create":
+                    lines.append("  ↳ Ticket created")
+                elif etype == "Change":
+                    field = event.get("field_name", "unknown")
+                    prev = event.get("previous_value") or "—"
+                    curr = event.get("value") or "—"
+                    lines.append(f"  ↳ {field}: {prev} → {curr}")
+                elif etype == "Comment":
+                    visibility = "public" if event.get("public", True) else "internal"
+                    body = str(event.get("body", "")).strip()[:120]
+                    suffix = "..." if len(str(event.get("body", ""))) > 120 else ""
+                    lines.append(f"  ↳ Comment ({visibility}): {body}{suffix}")
+            lines.append("")
+
+        return "\n".join(lines)
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            return f"Ticket {ticket_id} not found"
+        raise
+
+
 def register(mcp: FastMCP, client: ZendeskClient) -> None:
     @mcp.tool()
     async def get_ticket(ticket_id: int) -> str:
@@ -273,3 +324,14 @@ def register(mcp: FastMCP, client: ZendeskClient) -> None:
         Use this when you need an overview of tickets in a given state.
         """
         return await _list_tickets(client, status, per_page)
+
+    @mcp.tool()
+    async def get_ticket_audits(ticket_id: int) -> str:
+        """Retrieve the full audit trail (history of events) for a Zendesk ticket.
+
+        Returns a chronological list of all events: ticket creation, status changes,
+        reassignments, priority changes, tag updates, and comment additions.
+        Each entry shows who made the change, when, and what changed (old → new value).
+        Use this when you need to trace the full lifecycle of a ticket.
+        """
+        return await _get_ticket_audits(client, ticket_id)
