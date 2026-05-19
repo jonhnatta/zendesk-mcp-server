@@ -15,17 +15,26 @@ async def _get_ticket(client: ZendeskClient, ticket_id: int) -> str:
     try:
         data = await client.get(
             f"/api/v2/tickets/{ticket_id}.json",
-            params={"include": "users,organizations"},
+            params={"include": "users,organizations,groups"},
         )
         t = data["ticket"]
         users: list[dict[str, object]] = data.get("users", [])
         orgs: list[dict[str, object]] = data.get("organizations", [])
+        groups: list[dict[str, object]] = data.get("groups", [])
 
         org_name = next(
             (
                 str(o.get("name", "unknown"))
                 for o in orgs
                 if o.get("id") == t.get("organization_id")
+            ),
+            "unknown",
+        )
+        group_name = next(
+            (
+                str(g.get("name", "unknown"))
+                for g in groups
+                if g.get("id") == t.get("group_id")
             ),
             "unknown",
         )
@@ -39,7 +48,7 @@ async def _get_ticket(client: ZendeskClient, ticket_id: int) -> str:
             f"Type: {t.get('type', 'n/a')} | Status: {t['status']} | Priority: {t.get('priority', 'normal')}\n"
             f"Channel: {channel} | CSAT: {csat_str}\n"
             f"Requester: {_find_name(users, t.get('requester_id'))} | Assignee: {_find_name(users, t.get('assignee_id'))}\n"
-            f"Organization: {org_name}\n"
+            f"Organization: {org_name} | Group: {group_name}\n"
             f"Tags: {tags}\n"
             f"Created: {t.get('created_at')} | Updated: {t.get('updated_at')}\n"
             f"Description: {t.get('description', '')}"
