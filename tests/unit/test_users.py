@@ -74,7 +74,8 @@ async def test_get_user_no_organization(zendesk_client: ZendeskClient) -> None:
     )
     result = await _get_user(zendesk_client, 102)
     assert "Jane Doe" in result
-    assert "none" in result
+    assert "Organization: none" in result
+    assert "Tags: none" in result
 
 
 @respx.mock

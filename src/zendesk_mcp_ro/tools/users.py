@@ -13,13 +13,14 @@ async def _get_user(client: ZendeskClient, user_id: int) -> str:
         u = data["user"]
         orgs: list[dict[str, object]] = data.get("organizations", [])
 
-        org_name = next(
-            (
-                str(o.get("name", "unknown"))
-                for o in orgs
-                if o.get("id") == u.get("organization_id")
-            ),
-            "none",
+        org_id = u.get("organization_id")
+        org_name = (
+            next(
+                (str(o.get("name", "unknown")) for o in orgs if o.get("id") == org_id),
+                "none",
+            )
+            if org_id is not None
+            else "none"
         )
         tags = ", ".join(u.get("tags", [])) or "none"
 
