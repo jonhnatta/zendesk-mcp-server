@@ -3,7 +3,7 @@ import pytest
 import respx
 
 from zendesk_mcp_ro.client import ZendeskClient
-from zendesk_mcp_ro.tools.tickets import _get_ticket
+from zendesk_mcp_ro.tools.tickets import _get_ticket, _get_ticket_comments
 
 BASE = "https://test-company.zendesk.com"
 
@@ -75,3 +75,83 @@ async def test_get_ticket_propagates_other_errors(
     respx.get(f"{BASE}/api/v2/tickets/1.json").mock(return_value=httpx.Response(403))
     with pytest.raises(httpx.HTTPStatusError):
         await _get_ticket(zendesk_client, 1)
+
+
+# ---------------------------------------------------------------------------
+# get_ticket_comments
+# ---------------------------------------------------------------------------
+
+COMMENTS_PAYLOAD = {
+    "comments": [
+        {
+            "id": 1001,
+            "author_id": 101,
+            "body": "Hello, I cannot log in.",
+            "public": True,
+            "created_at": "2024-01-10T08:00:00Z",
+        },
+        {
+            "id": 1002,
+            "author_id": 202,
+            "body": "We are looking into this.",
+            "public": True,
+            "created_at": "2024-01-10T09:00:00Z",
+        },
+        {
+            "id": 1003,
+            "author_id": 202,
+            "body": "Internal note: check auth service.",
+            "public": False,
+            "created_at": "2024-01-10T09:05:00Z",
+        },
+    ],
+    "users": [
+        {"id": 101, "name": "John Doe"},
+        {"id": 202, "name": "Agent Smith"},
+    ],
+}
+
+
+@respx.mock
+async def test_get_ticket_comments_public_only(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/1/comments.json").mock(
+        return_value=httpx.Response(200, json=COMMENTS_PAYLOAD)
+    )
+    result = await _get_ticket_comments(zendesk_client, 1)
+    assert "John Doe" in result
+    assert "Agent Smith" in result
+    assert "Hello, I cannot log in." in result
+    assert "We are looking into this." in result
+    assert "Internal note" not in result
+
+
+@respx.mock
+async def test_get_ticket_comments_include_internal(
+    zendesk_client: ZendeskClient,
+) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/1/comments.json").mock(
+        return_value=httpx.Response(200, json=COMMENTS_PAYLOAD)
+    )
+    result = await _get_ticket_comments(zendesk_client, 1, include_internal=True)
+    assert "Internal note" in result
+    assert "internal" in result
+
+
+@respx.mock
+async def test_get_ticket_comments_not_found(zendesk_client: ZendeskClient) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/99999/comments.json").mock(
+        return_value=httpx.Response(404)
+    )
+    result = await _get_ticket_comments(zendesk_client, 99999)
+    assert result == "Ticket 99999 not found"
+
+
+@respx.mock
+async def test_get_ticket_comments_propagates_errors(
+    zendesk_client: ZendeskClient,
+) -> None:
+    respx.get(f"{BASE}/api/v2/tickets/1/comments.json").mock(
+        return_value=httpx.Response(403)
+    )
+    with pytest.raises(httpx.HTTPStatusError):
+        await _get_ticket_comments(zendesk_client, 1)
