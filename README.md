@@ -39,28 +39,6 @@ Adicione a entrada abaixo na configuração do seu cliente MCP:
 }
 ```
 
-### LangChain
-
-```python
-from langchain_mcp import MCPToolkit
-
-mcp = MCPToolkit(
-    command="uvx",
-    args=["zendesk-mcp-ro"],
-    env={
-        "ZENDESK_EMAIL": "voce@empresa.com",
-        "ZENDESK_TOKEN": "seu-api-token",
-        "ZENDESK_SUBDOMAIN": "sua-empresa"
-    }
-)
-
-result = mcp.call_tool(
-    "search_tickets",
-    {"query": "status:open priority:high"}
-)
-print(result)
-```
-
 ---
 
 ## Variáveis de ambiente
