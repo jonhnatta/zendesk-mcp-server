@@ -1,7 +1,15 @@
 import httpx
 from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from zendesk_mcp_ro.client import ZendeskClient
+
+_ANNOTATIONS = ToolAnnotations(
+    readOnlyHint=True,
+    destructiveHint=False,
+    idempotentHint=True,
+    openWorldHint=True,
+)
 
 
 async def _get_organization(client: ZendeskClient, org_id: int) -> str:
@@ -64,7 +72,7 @@ async def _list_organizations(
 
 
 def register(mcp: FastMCP, client: ZendeskClient) -> None:
-    @mcp.tool()
+    @mcp.tool(annotations=_ANNOTATIONS)
     async def get_organization(org_id: int) -> str:
         """Retrieve a Zendesk organization by its ID.
 
@@ -74,7 +82,7 @@ def register(mcp: FastMCP, client: ZendeskClient) -> None:
         """
         return await _get_organization(client, org_id)
 
-    @mcp.tool()
+    @mcp.tool(annotations=_ANNOTATIONS)
     async def list_organizations(per_page: int = 25) -> str:
         """List all Zendesk organizations.
 

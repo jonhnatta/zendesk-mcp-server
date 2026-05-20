@@ -1,6 +1,14 @@
 from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from zendesk_mcp_ro.client import ZendeskClient
+
+_ANNOTATIONS = ToolAnnotations(
+    readOnlyHint=True,
+    destructiveHint=False,
+    idempotentHint=True,
+    openWorldHint=True,
+)
 
 
 def _format_csat_list(
@@ -44,7 +52,7 @@ async def _list_satisfaction_ratings(
 
 
 def register(mcp: FastMCP, client: ZendeskClient) -> None:
-    @mcp.tool()
+    @mcp.tool(annotations=_ANNOTATIONS)
     async def list_satisfaction_ratings(
         score: str | None = None,
         per_page: int = 25,

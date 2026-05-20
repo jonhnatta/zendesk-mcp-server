@@ -1,7 +1,15 @@
 import httpx
 from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from zendesk_mcp_ro.client import ZendeskClient
+
+_ANNOTATIONS = ToolAnnotations(
+    readOnlyHint=True,
+    destructiveHint=False,
+    idempotentHint=True,
+    openWorldHint=True,
+)
 
 
 async def _get_user(client: ZendeskClient, user_id: int) -> str:
@@ -73,7 +81,7 @@ async def _search_users(
 
 
 def register(mcp: FastMCP, client: ZendeskClient) -> None:
-    @mcp.tool()
+    @mcp.tool(annotations=_ANNOTATIONS)
     async def get_user(user_id: int) -> str:
         """Retrieve a Zendesk user by their ID.
 
@@ -83,7 +91,7 @@ def register(mcp: FastMCP, client: ZendeskClient) -> None:
         """
         return await _get_user(client, user_id)
 
-    @mcp.tool()
+    @mcp.tool(annotations=_ANNOTATIONS)
     async def search_users(query: str, per_page: int = 25) -> str:
         """Search Zendesk users by name, email, or other attributes.
 
