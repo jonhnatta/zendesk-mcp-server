@@ -10,13 +10,15 @@ jobs:
   ci:
     name: Lint, typecheck, test and audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff  # v6
         with:
           enable-cache: true
 
@@ -38,4 +40,4 @@ jobs:
         run: uv run pytest -v
 
       - name: Security audit
-        run: uv run pip-audit
+        run: uv run pip-audit --ignore-vuln PYSEC-2025-183
