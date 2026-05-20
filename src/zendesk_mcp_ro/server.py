@@ -1,3 +1,4 @@
+import logging
 import sys
 
 from fastmcp import FastMCP
@@ -33,6 +34,9 @@ def main() -> None:
 
     logger.remove()
     logger.add(sys.stderr, level=settings.log_level)
+
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
     mcp, _ = _create_app(settings)
 
