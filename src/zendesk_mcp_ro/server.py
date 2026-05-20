@@ -5,7 +5,7 @@ from loguru import logger
 
 from zendesk_mcp_ro.client import ZendeskClient
 from zendesk_mcp_ro.config import ConfigurationError, Settings, get_settings
-from zendesk_mcp_ro.tools import tickets, users
+from zendesk_mcp_ro.tools import organizations, tickets, users
 
 
 def _create_app(settings: Settings) -> tuple[FastMCP, ZendeskClient]:
@@ -19,6 +19,7 @@ def _create_app(settings: Settings) -> tuple[FastMCP, ZendeskClient]:
     )
     tickets.register(mcp, client)
     users.register(mcp, client)
+    organizations.register(mcp, client)
     return mcp, client
 
 
