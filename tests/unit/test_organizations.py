@@ -65,6 +65,9 @@ async def test_get_organization_no_domains_no_tags(
     assert "Empty Corp" in result
     assert "Domains: none" in result
     assert "Tags: none" in result
+    assert "Notes: n/a" in result
+    assert "Details: n/a" in result
+    assert "Group ID: n/a" in result
 
 
 @respx.mock
