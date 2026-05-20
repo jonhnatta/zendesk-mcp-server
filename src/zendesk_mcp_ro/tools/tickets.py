@@ -1,7 +1,15 @@
 import httpx
 from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from zendesk_mcp_ro.client import ZendeskClient
+
+_ANNOTATIONS = ToolAnnotations(
+    readOnlyHint=True,
+    destructiveHint=False,
+    idempotentHint=True,
+    openWorldHint=True,
+)
 
 
 def _find_name(users: list[dict[str, object]], user_id: object) -> str:
@@ -308,7 +316,7 @@ async def _get_tickets_count_by_status(client: ZendeskClient) -> str:
 
 
 def register(mcp: FastMCP, client: ZendeskClient) -> None:
-    @mcp.tool()
+    @mcp.tool(annotations=_ANNOTATIONS)
     async def get_ticket(ticket_id: int) -> str:
         """Retrieve a Zendesk ticket by its ID.
 
@@ -318,7 +326,7 @@ def register(mcp: FastMCP, client: ZendeskClient) -> None:
         """
         return await _get_ticket(client, ticket_id)
 
-    @mcp.tool()
+    @mcp.tool(annotations=_ANNOTATIONS)
     async def get_ticket_comments(
         ticket_id: int,
         include_internal: bool = False,
@@ -333,7 +341,7 @@ def register(mcp: FastMCP, client: ZendeskClient) -> None:
         """
         return await _get_ticket_comments(client, ticket_id, include_internal)
 
-    @mcp.tool()
+    @mcp.tool(annotations=_ANNOTATIONS)
     async def get_ticket_metrics(ticket_id: int) -> str:
         """Retrieve SLA and performance metrics for a Zendesk ticket.
 
@@ -344,7 +352,7 @@ def register(mcp: FastMCP, client: ZendeskClient) -> None:
         """
         return await _get_ticket_metrics(client, ticket_id)
 
-    @mcp.tool()
+    @mcp.tool(annotations=_ANNOTATIONS)
     async def search_tickets(query: str, per_page: int = 25) -> str:
         """Search Zendesk tickets using a text query.
 
@@ -355,7 +363,7 @@ def register(mcp: FastMCP, client: ZendeskClient) -> None:
         """
         return await _search_tickets(client, query, per_page)
 
-    @mcp.tool()
+    @mcp.tool(annotations=_ANNOTATIONS)
     async def list_tickets(
         status: str | None = None,
         per_page: int = 25,
@@ -370,7 +378,7 @@ def register(mcp: FastMCP, client: ZendeskClient) -> None:
         """
         return await _list_tickets(client, status, per_page)
 
-    @mcp.tool()
+    @mcp.tool(annotations=_ANNOTATIONS)
     async def get_ticket_audits(ticket_id: int) -> str:
         """Retrieve the full audit trail (history of events) for a Zendesk ticket.
 
@@ -381,7 +389,7 @@ def register(mcp: FastMCP, client: ZendeskClient) -> None:
         """
         return await _get_ticket_audits(client, ticket_id)
 
-    @mcp.tool()
+    @mcp.tool(annotations=_ANNOTATIONS)
     async def get_linked_incidents(ticket_id: int) -> str:
         """Retrieve all incident tickets linked to a Zendesk problem ticket.
 
@@ -393,7 +401,7 @@ def register(mcp: FastMCP, client: ZendeskClient) -> None:
         """
         return await _get_linked_incidents(client, ticket_id)
 
-    @mcp.tool()
+    @mcp.tool(annotations=_ANNOTATIONS)
     async def get_tickets_count_by_status() -> str:
         """Return a summary of ticket counts grouped by status.
 
