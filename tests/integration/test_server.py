@@ -14,6 +14,7 @@ async def test_create_app_returns_mcp_and_client(settings):
     assert "get_ticket" in tool_names
     assert "get_user" in tool_names
     assert "get_organization" in tool_names
+    assert "list_satisfaction_ratings" in tool_names
 
 
 def test_get_settings_raises_configuration_error_when_env_missing(monkeypatch):
