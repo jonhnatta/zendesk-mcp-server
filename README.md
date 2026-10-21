@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/jonhnatta/zendesk-mcp-server/actions/workflows/ci.yml/badge.svg)
 [![PyPI version](https://img.shields.io/pypi/v/zendesk-mcp-ro?style=flat)](https://pypi.org/project/zendesk-mcp-ro/)
-[![Python](https://img.shields.io/badge/Python-%3E%3D3.12-3776AB?style=flat)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-%3E%3D3.11-3776AB?style=flat)](https://www.python.org/)
 [![FastMCP](https://img.shields.io/badge/FastMCP-3.3+-009688?style=flat)](https://github.com/jlowin/fastmcp)
 [![uv](https://img.shields.io/badge/uv-package%20manager-DE5FE9?style=flat)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/badge/Ruff-linter-D7FF64?style=flat&logoColor=000)](https://github.com/astral-sh/ruff)
