@@ -35,6 +35,7 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [tool.mypy]
+python_version = "3.11"
 plugins = ["pydantic.mypy"]
 strict = true
 ignore_missing_imports = true
