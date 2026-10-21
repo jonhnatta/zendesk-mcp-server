@@ -3,7 +3,7 @@ name = "zendesk-mcp-ro"
 version = "0.1.0"
 description = "Read-only MCP server for Zendesk — distributed via PyPI, runs locally with uvx"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "fastmcp>=3.3.1",
     "httpx>=0.28.1",
