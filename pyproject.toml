@@ -1,6 +1,6 @@
 [project]
 name = "zendesk-mcp-ro"
-version = "0.1.0"
+version = "0.1.1"
 description = "Read-only MCP server for Zendesk — distributed via PyPI, runs locally with uvx"
 readme = "README.md"
 requires-python = ">=3.11"
