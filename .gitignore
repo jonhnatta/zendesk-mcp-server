@@ -38,3 +38,7 @@ Thumbs.db
 CLAUDE.md
 FEATURES.md
 PRD-*.md
+docs/plans/
+.agents/
+.claude/
+skills-lock.json
