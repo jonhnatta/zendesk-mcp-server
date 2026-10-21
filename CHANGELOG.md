@@ -2,6 +2,12 @@
 
 Todas as mudanças relevantes deste projeto serão documentadas aqui.
 
+## [0.1.1] — 2026-10-21
+
+### Alterado
+- Suporte a Python 3.11: `requires-python` reduzido de `>=3.12` para `>=3.11`
+- CI e workflow de publicação executam lint, typecheck, testes e auditoria em Python 3.11 e 3.12
+
 ## [0.1.0] — 2026-05-20
 
 Primeira versão pública. Servidor MCP somente leitura para o Zendesk com 13 ferramentas.
