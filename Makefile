@@ -1,28 +1,35 @@
 .PHONY: run test test-cov lint format typecheck install dev-install
 
+# Dentro de `uv run --python X make ...`, reutiliza o Python X em vez do .python-version
+ifeq ($(VIRTUAL_ENV),$(CURDIR)/.venv)
+UV_RUN := uv run --python "$(VIRTUAL_ENV)/bin/python"
+else
+UV_RUN := uv run
+endif
+
 run:
-	uv run zendesk-mcp-ro
+	$(UV_RUN) zendesk-mcp-ro
 
 test:
-	uv run pytest -v; status=$$?; [ $$status -eq 5 ] && exit 0 || exit $$status
+	$(UV_RUN) pytest -v; status=$$?; [ $$status -eq 5 ] && exit 0 || exit $$status
 
 test-cov:
-	uv run pytest --cov=src --cov-report=term-missing; status=$$?; [ $$status -eq 5 ] && exit 0 || exit $$status
+	$(UV_RUN) pytest --cov=src --cov-report=term-missing; status=$$?; [ $$status -eq 5 ] && exit 0 || exit $$status
 
 lint:
-	uv run ruff check src/ tests/
-	uv run ruff format --check src/ tests/
+	$(UV_RUN) ruff check src/ tests/
+	$(UV_RUN) ruff format --check src/ tests/
 
 format:
-	uv run ruff check --fix src/ tests/
-	uv run ruff format src/ tests/
+	$(UV_RUN) ruff check --fix src/ tests/
+	$(UV_RUN) ruff format src/ tests/
 
 typecheck:
-	uv run mypy src/
+	$(UV_RUN) mypy src/
 
 install:
 	uv sync
 
 dev-install:
 	uv sync
-	uv run pre-commit install
+	$(UV_RUN) pre-commit install
